@@ -3723,5 +3723,19 @@
     "downloadDialogTranscodedIntoSemanticLabel": "转码为",
     "@downloadDialogTranscodedIntoSemanticLabel": {
         "description": "Screen reader label for the arrow icon in the download dialog's transcode summary. It sits between the original value and the transcoded value, e.g. 'FLAC, transcoded into, OPUS'."
-    }
+    },
+    "castTitle": "投屏播放",
+    "castThisDevice": "本机播放",
+    "castThisDeviceSubtitle": "在当前设备上播放音乐",
+    "castNoDevicesFound": "未发现其他可控制的 Jellyfin 设备。\n请在其他设备上打开 Jellyfin 客户端后刷新重试。",
+    "castConnectedTo": "正在投屏到 {deviceName}",
+    "castDisconnected": "已断开投屏连接",
+    "castDisconnect": "断开投屏",
+    "castSwitchDevice": "切换设备",
+    "castTransferQueue": "同步当前播放队列",
+    "castTransferCurrentPlayback": "连接时同步当前正在播放的队列",
+    "castReadyToPlay": "已连接，选择任意音乐即可在目标设备播放",
+    "castRemoteDevicesSection": "Jellyfin 投屏设备",
+    "castStop": "停止播放",
+    "castUpNext": "设备播放队列"
 }

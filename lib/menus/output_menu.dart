@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:finamp/color_schemes.g.dart';
 import 'package:finamp/components/Buttons/cta_medium.dart';
+import 'package:finamp/components/Cast/cast_device_picker_sheet.dart';
+import 'package:finamp/components/Cast/remote_controller_sheet.dart';
 import 'package:finamp/components/Shortcuts/global_shortcut_manager.dart';
 import 'package:finamp/components/Shortcuts/music_control_shortcuts.dart';
 import 'package:finamp/components/global_snackbar.dart';
@@ -15,6 +17,7 @@ import 'package:finamp/services/finamp_settings_helper.dart';
 import 'package:finamp/services/music_player_background_task.dart';
 import 'package:finamp/services/output_route_provider.dart';
 import 'package:finamp/services/queue_service.dart';
+import 'package:finamp/services/remote_cast_service.dart';
 import 'package:finamp/services/theme_provider.dart';
 import 'package:finamp/utils/platform_helper.dart';
 import 'package:flutter/material.dart';
@@ -115,6 +118,62 @@ Future<void> showOutputMenu({required BuildContext context, bool usePlayerTheme 
             child: SliverList(delegate: SliverChildListDelegate.fixed(menuEntries)),
           ),
         ),
+        if (!FinampSettingsHelper.finampSettings.isOffline)
+          SliverStickyHeader(
+            header: Padding(
+              padding: const EdgeInsets.only(top: 10.0, bottom: 8.0, left: 16.0, right: 16.0),
+              child: Text(
+                AppLocalizations.of(context)!.castRemoteDevicesSection,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            sliver: MenuMask(
+              height: OutputMenuHeader.defaultHeight,
+              child: SliverToBoxAdapter(
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final castService = ref.watch(remoteCastServiceProvider);
+                    final l10n = AppLocalizations.of(context)!;
+                    final isCasting = castService.isCasting;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                      child: ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        tileColor: isCasting
+                            ? Theme.of(context).colorScheme.primaryContainer.withValues(alpha: 0.4)
+                            : null,
+                        leading: Icon(
+                          isCasting ? Icons.cast_connected : TablerIcons.cast,
+                          color: isCasting ? Theme.of(context).colorScheme.primary : null,
+                        ),
+                        title: Text(
+                          isCasting
+                              ? l10n.castConnectedTo(castService.activeSession!.displayName)
+                              : l10n.castTitle,
+                        ),
+                        subtitle: Text(
+                          isCasting
+                              ? (castService.activeSession?.nowPlayingItem?.name ?? l10n.castReadyToPlay)
+                              : l10n.castThisDeviceSubtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(TablerIcons.chevron_right),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          if (isCasting) {
+                            unawaited(showRemoteControllerSheet(context));
+                          } else {
+                            unawaited(showCastDevicePickerSheet(context));
+                          }
+                        },
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
         if (Platform.isAndroid)
           SliverStickyHeader(
             header: Padding(

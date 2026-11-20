@@ -3920,5 +3920,27 @@
             }
         }
     },
-    "queueRestoreCancel": "Cancel Restore"
+    "queueRestoreCancel": "Cancel Restore",
+    "castTitle": "Play On",
+    "castThisDevice": "This Device",
+    "castThisDeviceSubtitle": "Play audio locally on this device",
+    "castNoDevicesFound": "No other controllable Jellyfin devices found.\nOpen Jellyfin on another device to cast to it.",
+    "castConnectedTo": "Casting to {deviceName}",
+    "@castConnectedTo": {
+        "description": "Snackbar and banner message shown when connected to a remote Jellyfin device",
+        "placeholders": {
+            "deviceName": {
+                "type": "String"
+            }
+        }
+    },
+    "castDisconnected": "Disconnected from remote device",
+    "castDisconnect": "Disconnect",
+    "castSwitchDevice": "Switch Device",
+    "castTransferQueue": "Transfer Current Queue",
+    "castTransferCurrentPlayback": "Transfer current playback when connecting",
+    "castReadyToPlay": "Connected — select music to play",
+    "castRemoteDevicesSection": "Jellyfin Remote Devices",
+    "castStop": "Stop",
+    "castUpNext": "Up Next on Device"
 }

@@ -3692,5 +3692,19 @@
     "@releaseDateFormatNumerical": {
         "description": "Date format option for the release date of an album, showing the date in a short numerical format. Changes based on locale such as DD/MM/YYYY for en_gb and MM/DD/YYYY for en_us."
     },
-    "loginFlowLocalNetworkServersNoResults": "尚未偵測到伺服器，請嘗試手動輸入伺服器位址。"
+    "loginFlowLocalNetworkServersNoResults": "尚未偵測到伺服器，請嘗試手動輸入伺服器位址。",
+    "castTitle": "投放播放",
+    "castThisDevice": "本機播放",
+    "castThisDeviceSubtitle": "在目前裝置上播放音樂",
+    "castNoDevicesFound": "找不到其他可控制的 Jellyfin 裝置。\n請在其他裝置上開啟 Jellyfin 用戶端後重新整理。",
+    "castConnectedTo": "正在投放到 {deviceName}",
+    "castDisconnected": "已中斷投放連線",
+    "castDisconnect": "中斷連線",
+    "castSwitchDevice": "切換裝置",
+    "castTransferQueue": "同步目前播放佇列",
+    "castTransferCurrentPlayback": "連線時同步目前正在播放的佇列",
+    "castReadyToPlay": "已連線，選擇音樂即可在目標裝置播放",
+    "castRemoteDevicesSection": "Jellyfin 遠端裝置",
+    "castStop": "停止播放",
+    "castUpNext": "裝置播放佇列"
 }

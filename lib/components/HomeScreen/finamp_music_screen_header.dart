@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:finamp/components/Cast/cast_button.dart';
 import 'package:finamp/components/MusicScreen/item_wrapper.dart';
 import 'package:finamp/components/finamp_app_bar_back_button.dart';
 import 'package:finamp/components/finamp_icon.dart';
@@ -259,6 +260,7 @@ class FinampMusicScreenHeader extends ConsumerWidget implements PreferredSizeWid
                         refreshTab();
                       },
                     ),
+                  const CastButton(iconSize: 26.0),
                   if (singleTabConfig == null || singleTabConfig?.base is TabsHomeSection)
                     IconButtonWithSemantics(
                       label: context.l10n.search,

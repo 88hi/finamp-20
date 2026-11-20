@@ -57,6 +57,7 @@ import 'package:finamp/services/offline_listen_helper.dart';
 import 'package:finamp/services/playback_history_service.dart';
 import 'package:finamp/services/playon_service.dart';
 import 'package:finamp/services/queue_service.dart';
+import 'package:finamp/services/remote_cast_service.dart';
 import 'package:finamp/services/theme_provider.dart';
 import 'package:finamp/services/tray_service.dart';
 import 'package:finamp/services/ui_overlay_setter_observer.dart';
@@ -304,6 +305,7 @@ Future<void> _setupPlayOnService() async {
   final playOnService = PlayOnService();
   GetIt.instance.registerSingleton(playOnService);
   GetIt.instance<FinampUserHelper>().runUserHook(playOnService.initialize);
+  GetIt.instance.registerSingleton(RemoteCastService());
 }
 
 Future<void> _setupDiscordRpc() async {

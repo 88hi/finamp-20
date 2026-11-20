@@ -869,4 +869,93 @@ final class _$JellyfinApi extends JellyfinApi {
     final Request $request = Request('GET', $url, client.baseUrl);
     return client.send<dynamic, dynamic>($request);
   }
+
+  @override
+  Future<dynamic> getSessions({
+    String? controllableByUserId,
+    int? activeWithinSeconds,
+  }) async {
+    final Uri $url = Uri.parse('/Sessions');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'controllableByUserId': controllableByUserId,
+      'activeWithinSeconds': activeWithinSeconds,
+    };
+    final Request $request = Request(
+      'GET',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
+    final Response<dynamic> $response = await client.send<dynamic, dynamic>(
+      $request,
+      requestConverter: JsonConverter.requestFactory,
+      responseConverter: JsonConverter.responseFactory,
+    );
+    return $response.bodyOrThrow;
+  }
+
+  @override
+  Future<Response<dynamic>> sendRemotePlayCommand({
+    required String sessionId,
+    required String playCommand,
+    required String itemIds,
+    int? startIndex,
+    int? startPositionTicks,
+  }) {
+    final Uri $url = Uri.parse('/Sessions/${sessionId}/Playing');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'playCommand': playCommand,
+      'itemIds': itemIds,
+      'startIndex': startIndex,
+      'startPositionTicks': startPositionTicks,
+    };
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
+    return client.send<dynamic, dynamic>(
+      $request,
+      requestConverter: JsonConverter.requestFactory,
+    );
+  }
+
+  @override
+  Future<Response<dynamic>> sendRemotePlaystateCommand({
+    required String sessionId,
+    required String command,
+    int? seekPositionTicks,
+    String? controllingUserId,
+  }) {
+    final Uri $url = Uri.parse('/Sessions/${sessionId}/Playing/${command}');
+    final Map<String, dynamic> $params = <String, dynamic>{
+      'seekPositionTicks': seekPositionTicks,
+      'controllingUserId': controllingUserId,
+    };
+    final Request $request = Request(
+      'POST',
+      $url,
+      client.baseUrl,
+      parameters: $params,
+    );
+    return client.send<dynamic, dynamic>(
+      $request,
+      requestConverter: JsonConverter.requestFactory,
+    );
+  }
+
+  @override
+  Future<Response<dynamic>> sendRemoteGeneralCommand({
+    required String sessionId,
+    required Map<String, dynamic> body,
+  }) {
+    final Uri $url = Uri.parse('/Sessions/${sessionId}/Command');
+    final $body = body;
+    final Request $request = Request('POST', $url, client.baseUrl, body: $body);
+    return client.send<dynamic, dynamic>(
+      $request,
+      requestConverter: JsonConverter.requestFactory,
+    );
+  }
 }

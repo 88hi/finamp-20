@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:balanced_text/balanced_text.dart';
 import 'package:finamp/components/Buttons/simple_button.dart';
+import 'package:finamp/components/Cast/cast_button.dart';
 import 'package:finamp/components/PlayerScreen/control_area.dart';
 import 'package:finamp/components/PlayerScreen/player_screen_album_image.dart';
 import 'package:finamp/components/PlayerScreen/player_screen_appbar_title.dart';
@@ -302,7 +303,9 @@ class _PlayerScreenContent extends ConsumerWidget {
                 title: PlayerScreenAppBarTitle(maxLines: maxToolbarLines),
                 leadingWidth: (isDesktop ? 40.0 : 48.0) * appbarActions.length,
                 leading: Row(children: appbarActions),
-                actions: [],
+                actions: const [
+                  CastButton(iconSize: 24.0),
+                ],
                 titleSpacing: 0.0,
               ),
               // Required for sleep timer input

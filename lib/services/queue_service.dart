@@ -22,6 +22,7 @@ import 'package:finamp/services/jellyfin_api_helper.dart';
 import 'package:finamp/services/music_player_background_task.dart';
 import 'package:finamp/services/playback_history_service.dart';
 import 'package:finamp/services/radio_service_helper.dart';
+import 'package:finamp/services/remote_cast_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
@@ -695,6 +696,12 @@ class QueueService {
     }
   }
 
+  RemoteCastService? get _activeCastService {
+    if (!GetIt.instance.isRegistered<RemoteCastService>()) return null;
+    final cast = GetIt.instance<RemoteCastService>();
+    return cast.isCasting ? cast : null;
+  }
+
   // TODO cut more/all usages of this over to startSlicePlayback
   Future<void> startPlayback({
     required List<jellyfin_models.BaseItemDto> items,
@@ -705,6 +712,18 @@ class QueueService {
     int? startingIndex,
     bool skipRadioCacheInvalidation = false,
   }) async {
+    final castService = _activeCastService;
+    if (castService != null && source.type != QueueItemSourceType.remoteClient) {
+      List<jellyfin_models.BaseItemDto> castItems = items;
+      int startIdx = startingIndex ?? 0;
+      if (order == FinampPlaybackOrder.shuffled) {
+        castItems = List.of(items)..shuffle();
+        startIdx = 0;
+      }
+      await castService.playItems(items: castItems, startingIndex: startIdx, playCommand: 'PlayNow');
+      return;
+    }
+
     // _initialQueue = list; // save original PlaybackList for looping/restarting and meta info
 
     order ??= FinampPlaybackOrder.linear;
@@ -739,6 +758,17 @@ class QueueService {
   Future<void> startSlicePlayback(PlayableSlice slice) async => _startSlicePlayback(slice: slice);
 
   Future<void> _startSlicePlayback({required PlayableSlice slice, bool beginPlaying = true}) async {
+    final castService = _activeCastService;
+    if (castService != null && slice.source.type != QueueItemSourceType.remoteClient) {
+      final base = await slice.resolve(preShuffle: slice.shuffleState == SliceShuffleState.playerShuffled);
+      await castService.playItems(
+        items: base.items,
+        startingIndex: base.startingIndex,
+        playCommand: 'PlayNow',
+      );
+      return;
+    }
+
     final limit = FinampSettingsHelper.finampSettings.playerQueueLimit ?? DefaultSettings.playerQueueLimit;
     switch (slice) {
       case BasePlayableSlice():
@@ -1045,6 +1075,12 @@ class QueueService {
   }
 
   Future<void> addToQueue(PlayableSlice slice) async {
+    final castService = _activeCastService;
+    if (castService != null && slice.source.type != QueueItemSourceType.remoteClient) {
+      final base = await slice.resolve(preShuffle: true);
+      await castService.playLast(base.items);
+      return;
+    }
     if (_audioHandler.audioSources.isEmpty) {
       return _startSlicePlayback(slice: slice, beginPlaying: false);
     }
@@ -1089,6 +1125,12 @@ class QueueService {
   }
 
   Future<void> addNext(PlayableSlice slice) async {
+    final castService = _activeCastService;
+    if (castService != null && slice.source.type != QueueItemSourceType.remoteClient) {
+      final base = await slice.resolve(preShuffle: true);
+      await castService.playNext(base.items);
+      return;
+    }
     if (_audioHandler.audioSources.isEmpty) {
       return _startSlicePlayback(slice: slice, beginPlaying: false);
     }
@@ -1134,6 +1176,12 @@ class QueueService {
   }
 
   Future<void> addToNextUp(PlayableSlice slice) async {
+    final castService = _activeCastService;
+    if (castService != null && slice.source.type != QueueItemSourceType.remoteClient) {
+      final base = await slice.resolve(preShuffle: true);
+      await castService.playNext(base.items);
+      return;
+    }
     if (_audioHandler.audioSources.isEmpty) {
       return _startSlicePlayback(slice: slice, beginPlaying: false);
     }

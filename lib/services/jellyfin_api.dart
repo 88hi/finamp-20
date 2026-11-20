@@ -586,6 +586,43 @@ abstract class JellyfinApi extends ChopperService {
   @GET(path: "/System/Endpoint", optionalBody: true)
   Future<Response<dynamic>> pingServer();
 
+  /// Gets a list of sessions controllable by the user.
+  @FactoryConverter(request: JsonConverter.requestFactory, response: JsonConverter.responseFactory<dynamic, dynamic>)
+  @GET(path: "/Sessions")
+  Future<dynamic> getSessions({
+    @Query("controllableByUserId") String? controllableByUserId,
+    @Query("activeWithinSeconds") int? activeWithinSeconds,
+  });
+
+  /// Instructs a remote session to play items.
+  @FactoryConverter(request: JsonConverter.requestFactory)
+  @POST(path: "/Sessions/{sessionId}/Playing", optionalBody: true)
+  Future<Response<dynamic>> sendRemotePlayCommand({
+    @Path("sessionId") required String sessionId,
+    @Query("playCommand") required String playCommand,
+    @Query("itemIds") required String itemIds,
+    @Query("startIndex") int? startIndex,
+    @Query("startPositionTicks") int? startPositionTicks,
+  });
+
+  /// Sends a playstate command (PlayPause, Pause, Unpause, Stop, NextTrack, PreviousTrack, Seek, etc.) to a remote session.
+  @FactoryConverter(request: JsonConverter.requestFactory)
+  @POST(path: "/Sessions/{sessionId}/Playing/{command}", optionalBody: true)
+  Future<Response<dynamic>> sendRemotePlaystateCommand({
+    @Path("sessionId") required String sessionId,
+    @Path("command") required String command,
+    @Query("seekPositionTicks") int? seekPositionTicks,
+    @Query("controllingUserId") String? controllingUserId,
+  });
+
+  /// Sends a full general command (SetVolume, ToggleMute, SetRepeatMode, SetShuffleQueue, etc.) to a remote session.
+  @FactoryConverter(request: JsonConverter.requestFactory)
+  @POST(path: "/Sessions/{sessionId}/Command")
+  Future<Response<dynamic>> sendRemoteGeneralCommand({
+    @Path("sessionId") required String sessionId,
+    @Body() required Map<String, dynamic> body,
+  });
+
   static JellyfinApi create({required bool inForeground, required bool verboseLogging, required bool followRedirects}) {
     return _$JellyfinApi(
       createClient(inForeground: inForeground, verboseLogging: verboseLogging, followRedirects: followRedirects),

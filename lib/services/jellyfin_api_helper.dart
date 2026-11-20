@@ -22,6 +22,7 @@ import 'package:path_provider/path_provider.dart';
 import '../models/finamp_models.dart' as finamp_models;
 import '../models/finamp_models.dart' hide ContentType;
 import '../models/jellyfin_models.dart';
+import '../models/remote_cast_models.dart';
 import '../setup_logging.dart';
 import 'downloads_service.dart';
 import 'downloads_service_backend.dart';
@@ -1374,6 +1375,90 @@ class JellyfinApiHelper {
     );
     if (!response.isSuccessful) {
       throw response as Object;
+    }
+  }
+
+  /// Gets active Jellyfin sessions controllable by the current user.
+  Future<List<RemoteSession>> getControllableSessions({int? activeWithinSeconds}) async {
+    assert(_verifyCallable());
+    final userId = _finampUserHelper.currentUser?.id;
+    if (userId == null) return const [];
+
+    final response = await jellyfinApi.getSessions(
+      controllableByUserId: userId,
+      activeWithinSeconds: activeWithinSeconds,
+    );
+
+    if (response is! List) return const [];
+    final sessions = <RemoteSession>[];
+    for (final raw in response) {
+      if (raw is Map) {
+        final parsed = RemoteSession.tryFromJson(Map<String, dynamic>.from(raw));
+        if (parsed != null) {
+          sessions.add(parsed);
+        }
+      }
+    }
+    return sessions;
+  }
+
+  /// Instructs a remote Jellyfin session to play the given item IDs.
+  Future<void> sendRemotePlayCommand({
+    required String sessionId,
+    required List<BaseItemId> itemIds,
+    String playCommand = 'PlayNow',
+    int? startIndex,
+    int? startPositionTicks,
+  }) async {
+    assert(_verifyCallable());
+    if (itemIds.isEmpty) return;
+    final response = await jellyfinApi.sendRemotePlayCommand(
+      sessionId: sessionId,
+      playCommand: playCommand,
+      itemIds: itemIds.map((e) => e.raw).join(','),
+      startIndex: startIndex,
+      startPositionTicks: startPositionTicks,
+    );
+    if (!response.isSuccessful) {
+      throw "Failed to send remote play command (${response.statusCode}): ${response.error ?? ''}";
+    }
+  }
+
+  /// Sends a playstate command (PlayPause, Pause, Unpause, Stop, NextTrack, PreviousTrack, Seek) to a remote session.
+  Future<void> sendRemotePlaystateCommand({
+    required String sessionId,
+    required String command,
+    int? seekPositionTicks,
+  }) async {
+    assert(_verifyCallable());
+    final response = await jellyfinApi.sendRemotePlaystateCommand(
+      sessionId: sessionId,
+      command: command,
+      seekPositionTicks: seekPositionTicks,
+      controllingUserId: _finampUserHelper.currentUser?.id,
+    );
+    if (!response.isSuccessful) {
+      throw "Failed to send remote playstate command $command (${response.statusCode}): ${response.error ?? ''}";
+    }
+  }
+
+  /// Sends a general command (SetVolume, ToggleMute, SetRepeatMode, SetShuffleQueue, etc.) to a remote session.
+  Future<void> sendRemoteGeneralCommand({
+    required String sessionId,
+    required String name,
+    Map<String, String> arguments = const {},
+  }) async {
+    assert(_verifyCallable());
+    final response = await jellyfinApi.sendRemoteGeneralCommand(
+      sessionId: sessionId,
+      body: {
+        'Name': name,
+        if (_finampUserHelper.currentUser?.id != null) 'ControllingUserId': _finampUserHelper.currentUser!.id,
+        'Arguments': arguments,
+      },
+    );
+    if (!response.isSuccessful) {
+      throw "Failed to send remote command $name (${response.statusCode}): ${response.error ?? ''}";
     }
   }
 

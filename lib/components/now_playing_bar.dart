@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:audio_service/audio_service.dart';
 import 'package:finamp/color_schemes.g.dart';
 import 'package:finamp/components/AddToPlaylistScreen/add_to_playlist_button.dart';
+import 'package:finamp/components/Cast/remote_cast_now_playing_bar.dart';
 import 'package:finamp/components/audio_fade_progress_visualizer_container.dart';
 import 'package:finamp/components/global_snackbar.dart';
 import 'package:finamp/components/one_line_marquee_helper.dart';
@@ -15,6 +16,7 @@ import 'package:finamp/models/finamp_models.dart';
 import 'package:finamp/services/current_track_metadata_provider.dart';
 import 'package:finamp/services/feedback_helper.dart';
 import 'package:finamp/services/queue_service.dart';
+import 'package:finamp/services/remote_cast_service.dart';
 import 'package:finamp/services/theme_provider.dart';
 import 'package:finamp/services/widget_bindings_observer_provider.dart';
 import 'package:flutter/material.dart';
@@ -520,6 +522,13 @@ class NowPlayingBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final castService = ref.watch(remoteCastServiceProvider);
+    if (castService.isCasting) {
+      return const SafeArea(
+        child: RemoteCastNowPlayingBar(),
+      );
+    }
+
     final queueService = GetIt.instance<QueueService>();
 
     return Hero(
