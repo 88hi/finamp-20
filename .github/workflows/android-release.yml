@@ -57,7 +57,7 @@ jobs:
 
       - name: Build Android Release APK
         run: |
-          flutter build apk --release --no-pub
+          flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk finamp-android-cast-v1.1.0.apk
           sha256sum finamp-android-cast-v1.1.0.apk
 
