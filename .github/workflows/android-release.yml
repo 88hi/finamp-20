@@ -57,27 +57,28 @@ jobs:
 
       - name: Build Android Release APK
         run: |
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-cast.2' }}"
           flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk finamp-android-cast-v1.1.0.apk
-          sha256sum finamp-android-cast-v1.1.0.apk
+          cp build/app/outputs/flutter-apk/app-release.apk "finamp-android-${TAG}.apk"
+          sha256sum "finamp-android-${TAG}.apk"
 
       - name: Create GitHub Release with APK
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag || 'v1.1.0-cast.1' }}"
-          SHA=$(sha256sum finamp-android-cast-v1.1.0.apk | awk '{print $1}')
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-cast.2' }}"
+          APK_NAME="finamp-android-${TAG}.apk"
+          SHA=$(sha256sum "$APK_NAME" | awk '{print $1}')
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" finamp-android-cast-v1.1.0.apk \
+          gh release create "$TAG" "$APK_NAME" \
             --target "${{ github.ref_name }}" \
-            --title "Finamp v1.1.0 (Android 投屏版)" \
-            --notes "## 新增功能
-          - 新增 Jellyfin 投屏 / 远程控制（Play On）功能，像 Jellyfin 官方播放器一样控制同一服务器上的其他设备播放音乐
-          - 支持发现可控制设备、连接/切换/断开、同步当前播放队列
-          - 支持远程播放/暂停、上一首/下一首、停止、进度拖动、随机/循环模式、音量调节与静音、查看设备播放队列
-          - 主界面顶部栏、播放页顶部栏及输出菜单均已集成投屏入口，投屏时底部播放栏自动切换为远程控制条
+            --title "Finamp ${TAG} (Android 投屏版)" \
+            --notes "## 更新内容
+          - 修复投屏设备列表发现问题：移除 \`activeWithinSeconds=960\` 过滤（与 Jellyfin 官方网页一致），空闲待机状态下的 Supersonic 等客户端无需先放歌也能立即被识别
+          - 修复本机设备自身出现在投屏列表中的问题（正确匹配 Android/iOS 带后缀的 \`DeviceId\`）
+          - 优化大队列投屏的单次发送上限（\`_maxRemotePlayItems = 50\`），避免 URL 过长导致 \`Connection closed before full header was received\` 报错
 
           ## Android 安装包
-          - 文件名：\`finamp-android-cast-v1.1.0.apk\`
+          - 文件名：\`$APK_NAME\`
           - 已签名（Release 版本），下载后可直接在 Android 设备安装
           - SHA-256：\`$SHA\`"

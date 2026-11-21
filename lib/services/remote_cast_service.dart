@@ -7,6 +7,7 @@ import 'package:finamp/models/jellyfin_models.dart';
 import 'package:finamp/models/remote_cast_models.dart';
 import 'package:finamp/services/finamp_settings_helper.dart';
 import 'package:finamp/services/finamp_user_helper.dart';
+import 'package:finamp/services/jellyfin_api.dart' as jellyfin_api;
 import 'package:finamp/services/jellyfin_api_helper.dart';
 import 'package:finamp/services/music_player_background_task.dart';
 import 'package:finamp/services/queue_service.dart';
@@ -18,8 +19,8 @@ import 'package:logging/logging.dart';
 final _castLogger = Logger("RemoteCastService");
 
 /// Maximum number of item IDs sent in a single Jellyfin /Sessions/{id}/Playing query string
-/// to avoid exceeding reverse-proxy URL length limits.
-const int _maxRemotePlayItems = 150;
+/// to avoid exceeding reverse-proxy or Kestrel URL length limits.
+const int _maxRemotePlayItems = 50;
 
 /// Riverpod provider exposing the singleton [RemoteCastService].
 final remoteCastServiceProvider = ChangeNotifierProvider<RemoteCastService>((ref) {
@@ -90,11 +91,22 @@ class RemoteCastService extends ChangeNotifier {
     }
 
     try {
-      final allSessions = await _jellyfinApiHelper.getControllableSessions(activeWithinSeconds: 960);
-      final ownDeviceId = FinampSettingsHelper.finampSettings.deviceId;
+      // Do not pass activeWithinSeconds: Jellyfin Web queries /Sessions?controllableByUserId=...
+      // without an activity timeout, because idle WebSocket-connected clients (like Supersonic)
+      // only refresh LastActivityDate on HTTP requests rather than WebSocket KeepAlive frames.
+      final allSessions = await _jellyfinApiHelper.getControllableSessions();
+      final baseDeviceId = FinampSettingsHelper.finampSettings.deviceId;
+      String? fullDeviceId;
+      try {
+        final deviceInfo = await jellyfin_api.getDeviceInfo(deviceId: baseDeviceId);
+        fullDeviceId = deviceInfo.id;
+      } catch (_) {}
 
       final filtered = allSessions.where((s) {
-        if (s.deviceId != null && s.deviceId == ownDeviceId) return false;
+        if (s.deviceId != null &&
+            (s.deviceId == baseDeviceId || (fullDeviceId != null && s.deviceId == fullDeviceId))) {
+          return false;
+        }
         if (!s.isControllable) return false;
         if (!s.supportsAudio) return false;
         return true;
@@ -320,7 +332,7 @@ class RemoteCastService extends ChangeNotifier {
     if (current == null || FinampSettingsHelper.finampSettings.isOffline) return;
 
     try {
-      final sessions = await _jellyfinApiHelper.getControllableSessions(activeWithinSeconds: 960);
+      final sessions = await _jellyfinApiHelper.getControllableSessions();
       if (_activeSession == null) return;
 
       final updated = _findMatchingSession(sessions, current);
