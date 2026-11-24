@@ -1,0 +1,77 @@
+name: iOS Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag name'
+        required: true
+        default: 'v1.1.0-ios.1'
+
+permissions:
+  contents: write
+
+jobs:
+  build-ios-ipa:
+    name: Build iOS Unsigned IPA
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Determine Flutter version
+        id: flutter-version
+        uses: ./.github/actions/flutter-version
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ steps.flutter-version.outputs.version }}
+          cache: true
+          pub-cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v5
+        with:
+          path: |
+            ios/Pods
+            ~/.cocoapods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: ${{ runner.os }}-pods-
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build iOS Release (unsigned)
+        run: flutter build ios --release --no-codesign
+
+      - name: Package Unsigned IPA
+        run: |
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-ios.1' }}"
+          mkdir -p Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -qry "finamp-ios-${TAG}-unsigned.ipa" Payload
+          ls -lh "finamp-ios-${TAG}-unsigned.ipa"
+          shasum -a 256 "finamp-ios-${TAG}-unsigned.ipa"
+
+      - name: Create GitHub Release with iOS IPA
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-ios.1' }}"
+          IPA_NAME="finamp-ios-${TAG}-unsigned.ipa"
+          IPA_SHA=$(shasum -a 256 "$IPA_NAME" | awk '{print $1}')
+          gh release delete "$TAG" --yes 2>/dev/null || true
+          gh release create "$TAG" "$IPA_NAME" \
+            --target "${{ github.ref_name }}" \
+            --title "Finamp ${TAG} (iOS 投屏版 - 未签名 IPA)" \
+            --notes "## 说明
+          - 包含 Jellyfin 投屏 / 远程控制（Play On）功能
+          - 本文件为未签名 IPA（\`$IPA_NAME\`），请使用 Sideloadly、AltStore、SideStore、爱思助手、轻松签或 TrollStore 自签安装到 iPhone
+          - SHA-256：\`$IPA_SHA\`"
