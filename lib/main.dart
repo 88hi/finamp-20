@@ -55,6 +55,8 @@ import 'package:finamp/services/music_providers.dart';
 import 'package:finamp/services/network_manager.dart';
 import 'package:finamp/services/offline_listen_helper.dart';
 import 'package:finamp/services/playback_history_service.dart';
+import 'package:finamp/screens/media_backup_screen.dart';
+import 'package:finamp/services/media_backup_service.dart';
 import 'package:finamp/services/playon_service.dart';
 import 'package:finamp/services/queue_service.dart';
 import 'package:finamp/services/remote_cast_service.dart';
@@ -306,6 +308,7 @@ Future<void> _setupPlayOnService() async {
   GetIt.instance.registerSingleton(playOnService);
   GetIt.instance<FinampUserHelper>().runUserHook(playOnService.initialize);
   GetIt.instance.registerSingleton(RemoteCastService());
+  GetIt.instance.registerSingleton(MediaBackupService());
 }
 
 Future<void> _setupDiscordRpc() async {
@@ -1049,6 +1052,7 @@ class FinampApp extends ConsumerWidget {
         PlayerScreen.routeName: (context) => const PlayerScreen(key: ValueKey(PlayerScreen.routeName)),
         DownloadsScreen.routeName: (context) => const DownloadsScreen(),
         ActiveDownloadsScreen.routeName: (context) => const ActiveDownloadsScreen(),
+        MediaBackupScreen.routeName: (context) => const MediaBackupScreen(),
         PlaybackHistoryScreen.routeName: (context) => const PlaybackHistoryScreen(),
         LogsScreen.routeName: (context) => const LogsScreen(),
         QueueRestoreScreen.routeName: (context) => const QueueRestoreScreen(),

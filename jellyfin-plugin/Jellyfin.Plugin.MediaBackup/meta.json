@@ -1,0 +1,16 @@
+{
+  "category": "General",
+  "guid": "a8f4c2e1-7b3d-4e9a-9c51-6d2f8b4e1a03",
+  "name": "Media Backup",
+  "description": "Receive photo and video backups uploaded from mobile clients such as Finamp.",
+  "owner": "88hi",
+  "overview": "Mobile photo & video backup receiver plugin for Jellyfin 12.4.",
+  "targetAbi": "12.4.0.0",
+  "timestamp": "2026-11-23T00:00:00Z",
+  "version": "1.0.0.0",
+  "status": "Active",
+  "autoUpdate": false,
+  "assemblies": [
+    "Jellyfin.Plugin.MediaBackup.dll"
+  ]
+}

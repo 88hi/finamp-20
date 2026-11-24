@@ -42,6 +42,9 @@ class MainActivity : AudioServiceActivity() {
 
         private const val SET_NATIVE_THEME_CHANNEL = "com.unicornsonlsd.finamp/set_native_theme"
         private const val SET_NATIVE_THEME_CHANNEL_LOG_TAG = "setNativeThemeChannel"
+
+        private const val MEDIA_BACKUP_CHANNEL = "com.unicornsonlsd.finamp/media_backup"
+        private const val MEDIA_BACKUP_CHANNEL_LOG_TAG = "MediaBackupChannel"
     }
 
     private lateinit var mediaRouter: MediaRouter
@@ -186,6 +189,83 @@ class MainActivity : AudioServiceActivity() {
                     Log.e(SET_NATIVE_THEME_CHANNEL_LOG_TAG, "Method not found: '${call.method}'")
                     result.notImplemented()
                 }
+            }
+        }
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            MEDIA_BACKUP_CHANNEL,
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "listMediaFolders" -> {
+                    val includePhotos = call.argument<Boolean>("includePhotos") ?: true
+                    val includeVideos = call.argument<Boolean>("includeVideos") ?: true
+                    lifecycleScope.launch {
+                        try {
+                            val folders = withContext(Dispatchers.IO) {
+                                MediaBackupHelper.listMediaFolders(applicationContext, includePhotos, includeVideos)
+                            }
+                            result.success(folders)
+                        } catch (e: Exception) {
+                            Log.e(MEDIA_BACKUP_CHANNEL_LOG_TAG, "listMediaFolders failed", e)
+                            result.error("MEDIA_BACKUP_ERROR", e.message, null)
+                        }
+                    }
+                }
+                "listMediaItems" -> {
+                    val bucketIds = call.argument<List<String>>("bucketIds").orEmpty()
+                    val includePhotos = call.argument<Boolean>("includePhotos") ?: true
+                    val includeVideos = call.argument<Boolean>("includeVideos") ?: true
+                    lifecycleScope.launch {
+                        try {
+                            val items = withContext(Dispatchers.IO) {
+                                MediaBackupHelper.listMediaItems(applicationContext, bucketIds, includePhotos, includeVideos)
+                            }
+                            result.success(items)
+                        } catch (e: Exception) {
+                            Log.e(MEDIA_BACKUP_CHANNEL_LOG_TAG, "listMediaItems failed", e)
+                            result.error("MEDIA_BACKUP_ERROR", e.message, null)
+                        }
+                    }
+                }
+                "readFileChunk" -> {
+                    val contentUri = call.argument<String>("contentUri")
+                    val offset = call.argument<Number>("offset")?.toLong() ?: 0L
+                    val length = call.argument<Number>("length")?.toInt() ?: (4 * 1024 * 1024)
+                    if (contentUri.isNullOrBlank()) {
+                        result.error("INVALID_ARGS", "contentUri is required", null)
+                        return@setMethodCallHandler
+                    }
+                    lifecycleScope.launch {
+                        try {
+                            val bytes = withContext(Dispatchers.IO) {
+                                MediaBackupHelper.readFileChunk(applicationContext, contentUri, offset, length)
+                            }
+                            result.success(bytes)
+                        } catch (e: Exception) {
+                            Log.e(MEDIA_BACKUP_CHANNEL_LOG_TAG, "readFileChunk failed", e)
+                            result.error("MEDIA_BACKUP_ERROR", e.message, null)
+                        }
+                    }
+                }
+                "computeSha256" -> {
+                    val contentUri = call.argument<String>("contentUri")
+                    if (contentUri.isNullOrBlank()) {
+                        result.error("INVALID_ARGS", "contentUri is required", null)
+                        return@setMethodCallHandler
+                    }
+                    lifecycleScope.launch {
+                        try {
+                            val sha = withContext(Dispatchers.IO) {
+                                MediaBackupHelper.computeSha256(applicationContext, contentUri)
+                            }
+                            result.success(sha)
+                        } catch (e: Exception) {
+                            Log.e(MEDIA_BACKUP_CHANNEL_LOG_TAG, "computeSha256 failed", e)
+                            result.error("MEDIA_BACKUP_ERROR", e.message, null)
+                        }
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
         MethodChannel(

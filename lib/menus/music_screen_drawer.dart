@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:finamp/components/HomeScreen/finamp_music_screen_header.dart';
 import 'package:finamp/components/MusicScreen/offline_mode_status_label.dart';
+import 'package:finamp/screens/media_backup_screen.dart';
 import 'package:finamp/components/MusicScreen/offline_mode_switch_list_tile.dart';
 import 'package:finamp/components/MusicScreen/view_list_tile.dart';
 import 'package:finamp/components/finamp_icon.dart';
@@ -164,6 +165,16 @@ class MusicScreenDrawer extends ConsumerWidget {
                         onTap: () => Navigator.of(context).pushNamed(QueueRestoreScreen.routeName),
                         dense: true,
                       ),
+                      if (Platform.isAndroid)
+                        ListTile(
+                          leading: const Padding(
+                            padding: EdgeInsets.only(left: 2.0, right: 12.0),
+                            child: Icon(TablerIcons.cloud_upload, size: 20.0),
+                          ),
+                          title: Text(AppLocalizations.of(context)!.mediaBackupTitle, style: TextStyle(fontSize: 15.0)),
+                          onTap: () => Navigator.of(context).pushNamed(MediaBackupScreen.routeName),
+                          dense: true,
+                        ),
                     ]),
                   ),
                   // This causes an error when logging out if we show this widget

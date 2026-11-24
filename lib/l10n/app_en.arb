@@ -3942,5 +3942,102 @@
     "castReadyToPlay": "Connected — select music to play",
     "castRemoteDevicesSection": "Jellyfin Remote Devices",
     "castStop": "Stop",
-    "castUpNext": "Up Next on Device"
+    "castUpNext": "Up Next on Device",
+    "mediaBackupTitle": "Photo & Video Backup",
+    "mediaBackupCheckingServer": "Checking Jellyfin Media Backup plugin...",
+    "mediaBackupPluginReady": "Jellyfin Media Backup Plugin Connected",
+    "mediaBackupPluginVersion": "Plugin v{version} ready",
+    "@mediaBackupPluginVersion": {
+        "placeholders": {
+            "version": {
+                "type": "String"
+            }
+        }
+    },
+    "mediaBackupServerStatsSummary": "Cloud backup: {photos} photos, {videos} videos ({size})",
+    "@mediaBackupServerStatsSummary": {
+        "placeholders": {
+            "photos": {
+                "type": "int"
+            },
+            "videos": {
+                "type": "int"
+            },
+            "size": {
+                "type": "String"
+            }
+        }
+    },
+    "mediaBackupPluginNotInstalled": "Media Backup Plugin Not Installed",
+    "mediaBackupPluginNotInstalledHint": "Install Jellyfin.Plugin.MediaBackup on your Jellyfin 12.4 server and restart Jellyfin.",
+    "mediaBackupPluginNotConfigured": "Backup Folder Not Configured on Server",
+    "mediaBackupPluginNotConfiguredHint": "Open Jellyfin Dashboard -> Plugins -> Media Backup and set the Backup Root Path.",
+    "mediaBackupStartButton": "Start Backup",
+    "mediaBackupStop": "Stop Backup",
+    "mediaBackupScanning": "Scanning selected folders...",
+    "mediaBackupProgressSummary": "{processed}/{total} processed ({uploaded} uploaded, {skipped} skipped)",
+    "@mediaBackupProgressSummary": {
+        "placeholders": {
+            "processed": {
+                "type": "int"
+            },
+            "total": {
+                "type": "int"
+            },
+            "uploaded": {
+                "type": "int"
+            },
+            "skipped": {
+                "type": "int"
+            }
+        }
+    },
+    "mediaBackupCompletedSummary": "Backup finished: {uploaded} uploaded, {skipped} already backed up",
+    "@mediaBackupCompletedSummary": {
+        "placeholders": {
+            "uploaded": {
+                "type": "int"
+            },
+            "skipped": {
+                "type": "int"
+            }
+        }
+    },
+    "mediaBackupOptionsTitle": "Backup Options",
+    "mediaBackupIncludePhotos": "Include Photos",
+    "mediaBackupIncludeVideos": "Include Videos",
+    "mediaBackupWifiOnly": "Wi-Fi Only",
+    "mediaBackupChargingOnly": "Charging Only",
+    "mediaBackupSelectFoldersTitle": "Select Folders to Back Up",
+    "mediaBackupFolderSummary": "{photos} photos, {videos} videos • {size}",
+    "@mediaBackupFolderSummary": {
+        "placeholders": {
+            "photos": {
+                "type": "int"
+            },
+            "videos": {
+                "type": "int"
+            },
+            "size": {
+                "type": "String"
+            }
+        }
+    },
+    "mediaBackupPermissionHint": "Grant photo and video access so Finamp can list your phone folders for backup.",
+    "mediaBackupGrantPermission": "Grant Media Permission",
+    "mediaBackupNoFoldersFound": "No photo or video folders found on this device.",
+    "mediaBackupNoFoldersSelected": "Please select at least one folder to back up.",
+    "mediaBackupWifiRequired": "Wi-Fi is required for backup (disable 'Wi-Fi Only' to use mobile data).",
+    "mediaBackupChargingRequired": "Device must be charging to start backup.",
+    "mediaBackupFailedCount": "{count} files failed to upload",
+    "@mediaBackupFailedCount": {
+        "placeholders": {
+            "count": {
+                "type": "int"
+            }
+        }
+    },
+    "mediaBackupRetryFailed": "Retry Failed",
+    "mediaBackupClearLocalCache": "Reset Local Backup Index",
+    "mediaBackupCacheCleared": "Local backup index cleared. Next backup will re-check files with the server."
 }

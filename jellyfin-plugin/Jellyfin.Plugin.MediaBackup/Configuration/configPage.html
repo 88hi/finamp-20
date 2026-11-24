@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>Media Backup</title>
+</head>
+<body>
+    <div id="MediaBackupConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+        <div data-role="content">
+            <div class="content-primary">
+                <form id="MediaBackupConfigForm">
+                    <div class="sectionTitleContainer flex align-items-center">
+                        <h2 class="sectionTitle">Media Backup（手机照片视频备份）</h2>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="BackupRootPath">备份保存根目录 (Backup Root Path)</label>
+                        <input id="BackupRootPath" name="BackupRootPath" type="text" is="emby-input" placeholder="例如：D:\Media\PhoneBackup" />
+                        <div class="fieldDescription">手机上传的照片与视频将保存到此目录下。请确保 Jellyfin 进程对该目录有读写权限。</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="PreserveFolderName" name="PreserveFolderName" type="checkbox" is="emby-checkbox" />
+                            <span>保留所选相册文件夹名称（推荐）</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">开启后保存为「根目录\所选文件夹名\原文件名」，不额外套用户/设备/年月层级；关闭后直接平铺保存到根目录。</div>
+                    </div>
+
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label class="emby-checkbox-label">
+                            <input id="AutoScanLibrary" name="AutoScanLibrary" type="checkbox" is="emby-checkbox" />
+                            <span>上传完成后自动触发媒体库扫描</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">防抖延迟 15 秒后自动扫描 Jellyfin 媒体库，让新备份的照片与视频立即可见。</div>
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="MaxFileSizeMB">单文件最大体积 (MB)</label>
+                        <input id="MaxFileSizeMB" name="MaxFileSizeMB" type="number" is="emby-input" min="1" max="102400" />
+                    </div>
+
+                    <div class="inputContainer">
+                        <label class="inputLabel inputLabelUnfocused" for="AllowedExtensions">允许的文件扩展名（逗号分隔）</label>
+                        <input id="AllowedExtensions" name="AllowedExtensions" type="text" is="emby-input" />
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block">
+                            <span>保存设置 (Save)</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+            var MediaBackupConfig = {
+                pluginUniqueId: 'a8f4c2e1-7b3d-4e9a-9c51-6d2f8b4e1a03'
+            };
+
+            document.querySelector('#MediaBackupConfigPage')
+                .addEventListener('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(MediaBackupConfig.pluginUniqueId).then(function (config) {
+                        document.querySelector('#BackupRootPath').value = config.BackupRootPath || '';
+                        document.querySelector('#PreserveFolderName').checked = config.PreserveFolderName !== false;
+                        document.querySelector('#AutoScanLibrary').checked = config.AutoScanLibrary !== false;
+                        document.querySelector('#MaxFileSizeMB').value = config.MaxFileSizeMB || 4096;
+                        document.querySelector('#AllowedExtensions').value = config.AllowedExtensions || '';
+                        Dashboard.hideLoadingMsg();
+                    });
+                });
+
+            document.querySelector('#MediaBackupConfigForm')
+                .addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    Dashboard.showLoadingMsg();
+                    ApiClient.getPluginConfiguration(MediaBackupConfig.pluginUniqueId).then(function (config) {
+                        config.BackupRootPath = document.querySelector('#BackupRootPath').value.trim();
+                        config.PreserveFolderName = document.querySelector('#PreserveFolderName').checked;
+                        config.AutoScanLibrary = document.querySelector('#AutoScanLibrary').checked;
+                        config.MaxFileSizeMB = parseInt(document.querySelector('#MaxFileSizeMB').value, 10) || 4096;
+                        config.AllowedExtensions = document.querySelector('#AllowedExtensions').value.trim();
+                        ApiClient.updatePluginConfiguration(MediaBackupConfig.pluginUniqueId, config).then(function (result) {
+                            Dashboard.processPluginConfigurationUpdateResult(result);
+                        });
+                    });
+                    return false;
+                });
+        </script>
+    </div>
+</body>
+</html>

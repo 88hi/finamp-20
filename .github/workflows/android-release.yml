@@ -6,18 +6,32 @@ on:
       tag:
         description: 'Release tag name'
         required: true
-        default: 'v1.1.0-cast.1'
+        default: 'v1.1.0-backup.1'
 
 permissions:
   contents: write
 
 jobs:
   build-android-release:
-    name: Build & Release Android APK
+    name: Build Android APK & Jellyfin 12.4 Plugin
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Set up .NET 10 for Jellyfin 12.4 Plugin
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build Jellyfin 12.4 MediaBackup Plugin
+        run: |
+          dotnet build jellyfin-plugin/Jellyfin.Plugin.MediaBackup/Jellyfin.Plugin.MediaBackup.csproj -c Release
+          mkdir -p plugin-pkg
+          cp jellyfin-plugin/Jellyfin.Plugin.MediaBackup/bin/Release/net10.0/Jellyfin.Plugin.MediaBackup.dll plugin-pkg/
+          cp jellyfin-plugin/Jellyfin.Plugin.MediaBackup/meta.json plugin-pkg/
+          (cd plugin-pkg && zip -r ../Jellyfin.Plugin.MediaBackup-v1.0.0-jf12.4.zip .)
+          sha256sum Jellyfin.Plugin.MediaBackup-v1.0.0-jf12.4.zip
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -61,28 +75,36 @@ jobs:
 
       - name: Build Android Release APK
         run: |
-          TAG="${{ github.event.inputs.tag || 'v1.1.0-cast.2' }}"
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-backup.1' }}"
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk "finamp-android-${TAG}.apk"
           sha256sum "finamp-android-${TAG}.apk"
 
-      - name: Create GitHub Release with APK
+      - name: Create GitHub Release with APK and Jellyfin Plugin
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="${{ github.event.inputs.tag || 'v1.1.0-cast.2' }}"
+          TAG="${{ github.event.inputs.tag || 'v1.1.0-backup.1' }}"
           APK_NAME="finamp-android-${TAG}.apk"
-          SHA=$(sha256sum "$APK_NAME" | awk '{print $1}')
+          PLUGIN_ZIP="Jellyfin.Plugin.MediaBackup-v1.0.0-jf12.4.zip"
+          APK_SHA=$(sha256sum "$APK_NAME" | awk '{print $1}')
+          PLUGIN_SHA=$(sha256sum "$PLUGIN_ZIP" | awk '{print $1}')
           gh release delete "$TAG" --yes 2>/dev/null || true
-          gh release create "$TAG" "$APK_NAME" \
+          gh release create "$TAG" "$APK_NAME" "$PLUGIN_ZIP" \
             --target "${{ github.ref_name }}" \
-            --title "Finamp ${TAG} (Android 投屏版)" \
+            --title "Finamp ${TAG} (Android 投屏 + 照片视频备份版)" \
             --notes "## 更新内容
-          - 修复投屏设备列表发现问题：移除 \`activeWithinSeconds=960\` 过滤（与 Jellyfin 官方网页一致），空闲待机状态下的 Supersonic 等客户端无需先放歌也能立即被识别
-          - 修复本机设备自身出现在投屏列表中的问题（正确匹配 Android/iOS 带后缀的 \`DeviceId\`）
-          - 优化大队列投屏的单次发送上限（\`_maxRemotePlayItems = 50\`），避免 URL 过长导致 \`Connection closed before full header was received\` 报错
+          - 新增 **手机照片与视频手动备份** 功能（侧边栏 → 照片与视频备份）
+          - 支持选择手机相册文件夹直接上传备份，不额外套多余目录层级
+          - 支持大视频 4MB 分片上传、断点续传、SHA-256 完整性校验、服务端秒传去重、保留原拍摄时间
+          - 支持仅 Wi-Fi / 仅充电限制、照片/视频类型筛选与失败项一键重试
+          - 使用永久固定签名密钥打包，支持直接覆盖安装上一版（v1.1.0-cast.2）
 
-          ## Android 安装包
+          ## 1. Android 安装包
           - 文件名：\`$APK_NAME\`
-          - 已签名（Release 版本），下载后可直接在 Android 设备安装
-          - SHA-256：\`$SHA\`"
+          - SHA-256：\`$APK_SHA\`
+
+          ## 2. Jellyfin 12.4 服务端插件
+          - 文件名：\`$PLUGIN_ZIP\`
+          - SHA-256：\`$PLUGIN_SHA\`
+          - 安装步骤：解压后将 \`Jellyfin.Plugin.MediaBackup.dll\` 和 \`meta.json\` 放入 \`D:\\App\\jellyfin\\data\\plugins\\MediaBackup\\\`（或 \`D:\\App\\jellyfin\\plugins\\MediaBackup\\\`），重启 Jellyfin 后在 **控制台 → 插件 → Media Backup** 中设置备份保存根目录并保存即可。"
