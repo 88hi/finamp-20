@@ -3737,5 +3737,8 @@
     "mediaBackupFailedCount": "{count} 個檔案上傳失敗",
     "mediaBackupRetryFailed": "重試失敗項目",
     "mediaBackupClearLocalCache": "重設本機已備份紀錄",
-    "mediaBackupCacheCleared": "已清除本機快取紀錄，下次備份將重新與伺服器比對去重。"
+    "mediaBackupCacheCleared": "已清除本機快取紀錄，下次備份將重新與伺服器比對去重。",
+    "mediaBackupQuickAction": "備份",
+    "mediaBackupLimitedPermissionWarning": "目前僅授予了「部分照片/影片」權限，系統會屏蔽新拍攝的照片與影片。請前往系統設定改為「一律全部允許」。",
+    "mediaBackupOpenSettings": "前往系統設定"
 }

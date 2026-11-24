@@ -3768,5 +3768,8 @@
     "mediaBackupFailedCount": "{count} 个文件上传失败",
     "mediaBackupRetryFailed": "重试失败项",
     "mediaBackupClearLocalCache": "重置本地已备份记录",
-    "mediaBackupCacheCleared": "已清空本地缓存记录，下次备份将重新与服务端比对去重。"
+    "mediaBackupCacheCleared": "已清空本地缓存记录，下次备份将重新与服务端比对去重。",
+    "mediaBackupQuickAction": "备份",
+    "mediaBackupLimitedPermissionWarning": "当前仅授予了「部分照片/视频」权限，系统会屏蔽新拍摄的照片和视频。请前往系统设置将照片与视频权限改为「始终全部允许」。",
+    "mediaBackupOpenSettings": "前往系统设置"
 }

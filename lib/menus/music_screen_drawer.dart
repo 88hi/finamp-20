@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:finamp/components/HomeScreen/finamp_music_screen_header.dart';
 import 'package:finamp/components/MusicScreen/offline_mode_status_label.dart';
+import 'package:finamp/components/global_snackbar.dart';
 import 'package:finamp/screens/media_backup_screen.dart';
+import 'package:finamp/services/media_backup_service.dart';
 import 'package:finamp/components/MusicScreen/offline_mode_switch_list_tile.dart';
 import 'package:finamp/components/MusicScreen/view_list_tile.dart';
 import 'package:finamp/components/finamp_icon.dart';
@@ -166,14 +169,75 @@ class MusicScreenDrawer extends ConsumerWidget {
                         dense: true,
                       ),
                       if (Platform.isAndroid)
-                        ListTile(
-                          leading: const Padding(
-                            padding: EdgeInsets.only(left: 2.0, right: 12.0),
-                            child: Icon(TablerIcons.cloud_upload, size: 20.0),
-                          ),
-                          title: Text(AppLocalizations.of(context)!.mediaBackupTitle, style: TextStyle(fontSize: 15.0)),
-                          onTap: () => Navigator.of(context).pushNamed(MediaBackupScreen.routeName),
-                          dense: true,
+                        Consumer(
+                          builder: (context, ref, _) {
+                            final backupService = ref.watch(mediaBackupServiceProvider);
+                            final l10n = AppLocalizations.of(context)!;
+                            final isBackingUp = backupService.isBackingUp;
+                            return ListTile(
+                              leading: const Padding(
+                                padding: EdgeInsets.only(left: 2.0, right: 12.0),
+                                child: Icon(TablerIcons.cloud_upload, size: 20.0),
+                              ),
+                              title: Text(l10n.mediaBackupTitle, style: const TextStyle(fontSize: 15.0)),
+                              trailing: isBackingUp
+                                  ? TextButton.icon(
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      onPressed: backupService.cancelBackup,
+                                      icon: const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                      label: Text(
+                                        '${(backupService.overallProgress * 100).round()}%',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    )
+                                  : FilledButton.tonal(
+                                      style: FilledButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                        minimumSize: const Size(0, 30),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      onPressed: () async {
+                                        final err = await backupService.startBackup();
+                                        if (!context.mounted) return;
+                                        if (err != null) {
+                                          final msg = switch (err) {
+                                            "WIFI_REQUIRED" => l10n.mediaBackupWifiRequired,
+                                            "CHARGING_REQUIRED" => l10n.mediaBackupChargingRequired,
+                                            "PLUGIN_NOT_INSTALLED" => l10n.mediaBackupPluginNotInstalled,
+                                            "PLUGIN_NOT_CONFIGURED" => l10n.mediaBackupPluginNotConfigured,
+                                            "NO_FOLDERS_SELECTED" => l10n.mediaBackupNoFoldersSelected,
+                                            "PERMISSION_DENIED" => l10n.mediaBackupPermissionHint,
+                                            _ => err,
+                                          };
+                                          GlobalSnackbar.message((_) => msg);
+                                          if (err == "NO_FOLDERS_SELECTED" ||
+                                              err == "PERMISSION_DENIED" ||
+                                              err == "PLUGIN_NOT_INSTALLED" ||
+                                              err == "PLUGIN_NOT_CONFIGURED") {
+                                            unawaited(Navigator.of(context).pushNamed(MediaBackupScreen.routeName));
+                                          }
+                                        } else {
+                                          GlobalSnackbar.message(
+                                            (_) => l10n.mediaBackupCompletedSummary(
+                                              backupService.uploadedCount,
+                                              backupService.skippedCount,
+                                            ),
+                                          );
+                                        }
+                                      },
+                                      child: Text(l10n.mediaBackupQuickAction, style: const TextStyle(fontSize: 12)),
+                                    ),
+                              onTap: () => Navigator.of(context).pushNamed(MediaBackupScreen.routeName),
+                              dense: true,
+                            );
+                          },
                         ),
                     ]),
                   ),

@@ -19,10 +19,11 @@ class MediaBackupScreen extends ConsumerStatefulWidget {
   ConsumerState<MediaBackupScreen> createState() => _MediaBackupScreenState();
 }
 
-class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> {
+class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final service = GetIt.instance<MediaBackupService>();
       await service.initialize();
@@ -31,6 +32,22 @@ class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> {
         await service.requestPermissionsAndLoadFolders();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final service = GetIt.instance<MediaBackupService>();
+      if (service.isSupported && !service.isBackingUp) {
+        unawaited(service.refreshPermissionStatus(reloadFolders: true));
+      }
+    }
   }
 
   Future<void> _handleStartBackup({List<MediaBackupItem>? retryItems}) async {
@@ -47,6 +64,7 @@ class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> {
         "PLUGIN_NOT_INSTALLED" => l10n.mediaBackupPluginNotInstalled,
         "PLUGIN_NOT_CONFIGURED" => l10n.mediaBackupPluginNotConfigured,
         "NO_FOLDERS_SELECTED" => l10n.mediaBackupNoFoldersSelected,
+        "PERMISSION_DENIED" => l10n.mediaBackupPermissionHint,
         _ => errCode,
       };
       GlobalSnackbar.message((_) => msg);
@@ -75,9 +93,8 @@ class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> {
                 : () async {
                     FeedbackHelper.feedback(FeedbackType.light);
                     unawaited(service.checkServerStatus());
-                    if (service.hasPermission) {
-                      await service.loadFolders();
-                    } else {
+                    await service.refreshPermissionStatus(reloadFolders: true);
+                    if (!service.hasPermission) {
                       await service.requestPermissionsAndLoadFolders();
                     }
                   },
@@ -107,6 +124,40 @@ class _MediaBackupScreenState extends ConsumerState<MediaBackupScreen> {
           // 1. Server plugin status card
           _buildServerStatusCard(context, service, l10n, colorScheme, textTheme),
           const SizedBox(height: 12),
+
+          // 1.5. Android 14+ limited photo access warning banner
+          if (service.isLimitedPermission) ...[
+            Card(
+              color: Colors.orange.withValues(alpha: 0.16),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(TablerIcons.alert_triangle, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.mediaBackupLimitedPermissionWarning,
+                            style: textTheme.bodyMedium,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton.tonalIcon(
+                      onPressed: () => unawaited(service.openPermissionSettings()),
+                      icon: const Icon(TablerIcons.settings),
+                      label: Text(l10n.mediaBackupOpenSettings),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // 2. Manual backup action & progress card
           _buildActionCard(context, service, l10n, colorScheme, textTheme),

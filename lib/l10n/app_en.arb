@@ -4039,5 +4039,8 @@
     },
     "mediaBackupRetryFailed": "Retry Failed",
     "mediaBackupClearLocalCache": "Reset Local Backup Index",
-    "mediaBackupCacheCleared": "Local backup index cleared. Next backup will re-check files with the server."
+    "mediaBackupCacheCleared": "Local backup index cleared. Next backup will re-check files with the server.",
+    "mediaBackupQuickAction": "Backup",
+    "mediaBackupLimitedPermissionWarning": "Only selected photos are currently allowed, so newly taken photos and videos cannot be seen. Change permission to 'Allow all' in System Settings.",
+    "mediaBackupOpenSettings": "Open System Settings"
 }

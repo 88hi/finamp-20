@@ -3,8 +3,11 @@ package com.unicornsonlsd.finamp
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Environment
 import android.provider.MediaStore
+import java.io.File
 import java.io.FileInputStream
 import java.security.MessageDigest
 
@@ -17,11 +20,40 @@ object MediaBackupHelper {
         var totalBytes: Long = 0L,
     )
 
+    /**
+     * Triggers Android MediaScanner on common media directories so brand-new
+     * photos/videos appear in MediaStore immediately.
+     */
+    fun triggerMediaScan(context: Context) {
+        try {
+            val dirs = listOf(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES),
+            )
+            val paths = ArrayList<String>()
+            for (dir in dirs) {
+                if (dir != null && dir.exists() && dir.isDirectory) {
+                    paths.add(dir.absolutePath)
+                    dir.listFiles()?.filter { it.isDirectory }?.forEach { sub ->
+                        paths.add(sub.absolutePath)
+                    }
+                }
+            }
+            if (paths.isNotEmpty()) {
+                MediaScannerConnection.scanFile(context, paths.toTypedArray(), null, null)
+            }
+        } catch (_: Exception) {
+            // Non-fatal on restricted scoped-storage devices.
+        }
+    }
+
     fun listMediaFolders(
         context: Context,
         includePhotos: Boolean,
         includeVideos: Boolean,
     ): List<Map<String, Any>> {
+        triggerMediaScan(context)
         val resolver = context.contentResolver
         val map = LinkedHashMap<String, FolderAcc>()
 
@@ -88,6 +120,7 @@ object MediaBackupHelper {
         includeVideos: Boolean,
     ): List<Map<String, Any>> {
         if (bucketIds.isEmpty()) return emptyList()
+        triggerMediaScan(context)
         val resolver = context.contentResolver
         val items = ArrayList<Map<String, Any>>()
         val bucketSet = bucketIds.toHashSet()
@@ -99,7 +132,7 @@ object MediaBackupHelper {
             queryItems(resolver, MediaStore.Video.Media.EXTERNAL_CONTENT_URI, isVideo = true, bucketSet, items)
         }
 
-        // Sort newest first so recent photos/videos are backed up first.
+        // Sort newest first so newly captured photos/videos are backed up first.
         items.sortByDescending { (it["dateModifiedMs"] as? Long) ?: 0L }
         return items
     }
@@ -118,9 +151,10 @@ object MediaBackupHelper {
             MediaStore.MediaColumns.DISPLAY_NAME,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
+            MediaStore.MediaColumns.DATE_ADDED,
             MediaStore.MediaColumns.MIME_TYPE,
         )
-        val sortOrder = "${MediaStore.MediaColumns.DATE_MODIFIED} DESC"
+        val sortOrder = "${MediaStore.MediaColumns.DATE_ADDED} DESC"
 
         resolver.query(collectionUri, projection, null, null, sortOrder)?.use { cursor ->
             val idIdx = cursor.getColumnIndex(MediaStore.MediaColumns._ID)
@@ -128,7 +162,8 @@ object MediaBackupHelper {
             val bucketNameIdx = cursor.getColumnIndex(MediaStore.MediaColumns.BUCKET_DISPLAY_NAME)
             val nameIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
             val sizeIdx = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
-            val dateIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+            val dateModIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+            val dateAddIdx = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_ADDED)
             val mimeIdx = cursor.getColumnIndex(MediaStore.MediaColumns.MIME_TYPE)
 
             while (cursor.moveToNext()) {
@@ -138,23 +173,35 @@ object MediaBackupHelper {
                 val id = if (idIdx >= 0) cursor.getLong(idIdx) else continue
                 val fileName = if (nameIdx >= 0) cursor.getString(nameIdx) else null
                 if (fileName.isNullOrBlank()) continue
-                val size = if (sizeIdx >= 0) cursor.getLong(sizeIdx) else 0L
+
+                val itemUri = ContentUris.withAppendedId(collectionUri, id)
+                var size = if (sizeIdx >= 0) cursor.getLong(sizeIdx) else 0L
+                // Newly captured files may temporarily report SIZE=0 in MediaStore;
+                // fall back to the actual FileDescriptor statSize so they are never skipped.
+                if (size <= 0L) {
+                    size = try {
+                        resolver.openFileDescriptor(itemUri, "r")?.use { it.statSize } ?: 0L
+                    } catch (_: Exception) {
+                        0L
+                    }
+                }
                 if (size <= 0L) continue
 
                 val bucketName = if (bucketNameIdx >= 0) cursor.getString(bucketNameIdx) ?: "Unknown" else "Unknown"
-                val dateSec = if (dateIdx >= 0) cursor.getLong(dateIdx) else 0L
+                val dateModSec = if (dateModIdx >= 0) cursor.getLong(dateModIdx) else 0L
+                val dateAddSec = if (dateAddIdx >= 0) cursor.getLong(dateAddIdx) else 0L
+                val bestDateSec = maxOf(dateModSec, dateAddSec)
                 val mimeType = if (mimeIdx >= 0) cursor.getString(mimeIdx) ?: "application/octet-stream" else "application/octet-stream"
-                val contentUri = ContentUris.withAppendedId(collectionUri, id).toString()
 
                 out.add(
                     mapOf(
                         "id" to "${if (isVideo) "v" else "i"}_$id",
-                        "contentUri" to contentUri,
+                        "contentUri" to itemUri.toString(),
                         "bucketId" to bucketId,
                         "bucketName" to bucketName,
                         "fileName" to fileName,
                         "size" to size,
-                        "dateModifiedMs" to (dateSec * 1000L),
+                        "dateModifiedMs" to (bestDateSec * 1000L),
                         "mimeType" to mimeType,
                         "isVideo" to isVideo,
                     ),

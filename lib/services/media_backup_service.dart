@@ -158,6 +158,7 @@ class MediaBackupService extends ChangeNotifier {
 
   bool _initialized = false;
   bool _hasPermission = false;
+  bool _isLimitedPermission = false;
   bool _isLoadingFolders = false;
   bool _isCheckingServer = false;
   bool _isBackingUp = false;
@@ -187,6 +188,7 @@ class MediaBackupService extends ChangeNotifier {
 
   bool get isSupported => Platform.isAndroid;
   bool get hasPermission => _hasPermission;
+  bool get isLimitedPermission => _isLimitedPermission;
   bool get isLoadingFolders => _isLoadingFolders;
   bool get isCheckingServer => _isCheckingServer;
   bool get isBackingUp => _isBackingUp;
@@ -288,6 +290,40 @@ class MediaBackupService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> refreshPermissionStatus({bool reloadFolders = false}) async {
+    await initialize();
+    if (!Platform.isAndroid) return false;
+
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+
+    bool granted = false;
+    bool limited = false;
+    if (sdkInt >= 33) {
+      final photoStatus = await Permission.photos.status;
+      final videoStatus = await Permission.videos.status;
+      final photoFull = photoStatus.isGranted;
+      final videoFull = videoStatus.isGranted;
+      limited = (photoStatus.isLimited || videoStatus.isLimited) && !(photoFull && videoFull);
+      granted = photoFull || videoFull || limited;
+    } else {
+      final status = await Permission.storage.status;
+      granted = status.isGranted;
+      limited = false;
+    }
+
+    _hasPermission = granted;
+    _isLimitedPermission = limited;
+    notifyListeners();
+
+    if (granted && reloadFolders) {
+      await loadFolders();
+    }
+    return granted;
+  }
+
+  Future<bool> openPermissionSettings() => openAppSettings();
+
   Future<bool> requestPermissionsAndLoadFolders() async {
     await initialize();
     if (!Platform.isAndroid) return false;
@@ -296,18 +332,24 @@ class MediaBackupService extends ChangeNotifier {
     final sdkInt = androidInfo.version.sdkInt;
 
     bool granted = false;
+    bool limited = false;
     if (sdkInt >= 33) {
       final statuses = await [Permission.photos, Permission.videos].request();
-      granted = (statuses[Permission.photos]?.isGranted ?? false) ||
-          (statuses[Permission.photos]?.isLimited ?? false) ||
-          (statuses[Permission.videos]?.isGranted ?? false) ||
-          (statuses[Permission.videos]?.isLimited ?? false);
+      final photoStatus = statuses[Permission.photos];
+      final videoStatus = statuses[Permission.videos];
+      final photoFull = photoStatus?.isGranted ?? false;
+      final videoFull = videoStatus?.isGranted ?? false;
+      limited = ((photoStatus?.isLimited ?? false) || (videoStatus?.isLimited ?? false)) &&
+          !(photoFull && videoFull);
+      granted = photoFull || videoFull || limited;
     } else {
       final status = await Permission.storage.request();
       granted = status.isGranted;
+      limited = false;
     }
 
     _hasPermission = granted;
+    _isLimitedPermission = limited;
     notifyListeners();
 
     if (granted) {
@@ -443,6 +485,15 @@ class MediaBackupService extends ChangeNotifier {
 
     if (FinampSettingsHelper.finampSettings.isOffline || _userHelper.currentUser == null) {
       return "Offline or not logged in";
+    }
+
+    if (!_hasPermission) {
+      final ok = await requestPermissionsAndLoadFolders();
+      if (!ok) {
+        return "PERMISSION_DENIED";
+      }
+    } else {
+      await refreshPermissionStatus();
     }
 
     // Check Wi-Fi constraint
